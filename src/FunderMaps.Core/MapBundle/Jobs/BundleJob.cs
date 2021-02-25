@@ -25,8 +25,10 @@ namespace FunderMaps.Core.MapBundle.Jobs
 
         private static SemaphoreSlim storageHandle = new(1);
 
-        protected readonly ILayerRepository _layerRepository;
-        protected readonly IBlobStorageService _blobStorageService;
+        private string connectionString;
+
+        private readonly ILayerRepository _layerRepository;
+        private readonly IBlobStorageService _blobStorageService;
 
         private static readonly FormatProperty[] exportFormats =
         {
@@ -63,8 +65,6 @@ namespace FunderMaps.Core.MapBundle.Jobs
                 ContentType = "application/json",
             },
         };
-
-        private string connectionString;
 
         /// <summary>
         ///     Geometry format properties.
@@ -122,7 +122,8 @@ namespace FunderMaps.Core.MapBundle.Jobs
         /// <param name="bundle">Bundle to build.</param>
         /// <param name="input">Dataset input.</param>
         /// <param name="format">Output format.</param>
-        private async Task<DataSource> BuildBundleWithLayerAsync(Bundle bundle, DataSource input, GeometryFormat format)
+        /// <param name="filterLayer">Filter bundle on layers.</param>
+        private async Task<DataSource> BuildBundleAsync(Bundle bundle, DataSource input, GeometryFormat format, bool filterLayer = false)
         {
             FormatProperty formatProperty = exportFormats.First(f => f.Format == format);
             string blobStoragePath = $"dist/ORG{bundle.OrganizationId}/BND{bundle.Id}/{formatProperty.FormatShortName}";
@@ -135,29 +136,46 @@ namespace FunderMaps.Core.MapBundle.Jobs
                 Name = bundle.Id.ToString(),
             };
 
-            int returnCode = 0;
-            await foreach (var layer in _layerRepository.ListAllFromBundleIdAsync(bundle.Id))
+            if (filterLayer)
             {
-                // NOTE: Only check the return code in the next iteration. We cannot append to an
-                //       invalid dataset, however we can continue if only the last layer failed to
-                //       complete.
-                if (returnCode != 0)
+                int returnCode = 0;
+                await foreach (var layer in _layerRepository.ListAllFromBundleIdAsync(bundle.Id))
                 {
-                    throw new ProcessException("Last layer command failed, refuse to continue");
-                }
+                    // NOTE: Only check the return code in the next iteration. We cannot append to an
+                    //       invalid dataset, however we can continue if only the last layer failed to
+                    //       complete.
+                    if (returnCode != 0)
+                    {
+                        throw new ProcessException("Last layer command failed, refuse to continue");
+                    }
 
+                    var command = new VectorDatasetBuilder(
+                        new()
+                        {
+                            AdditionalOptions = formatProperty.CommandOptions,
+                            Append = true,
+                        })
+                        .InputDataset(input)
+                        .InputLayers(new BundleLayerSource(bundle, layer, Context.Workspace))
+                        .OutputDataset(fileDump)
+                        .Build(formatProperty.FormatName);
+
+                    returnCode = await RunCommandAsync(command);
+                }
+            }
+            else
+            {
                 var command = new VectorDatasetBuilder(
                     new()
                     {
                         AdditionalOptions = formatProperty.CommandOptions,
-                        Append = true,
+                        Overwrite = true,
                     })
                     .InputDataset(input)
-                    .InputLayers(new BundleLayerSource(bundle, layer, Context.Workspace))
                     .OutputDataset(fileDump)
                     .Build(formatProperty.FormatName);
 
-                returnCode = await RunCommandAsync(command);
+                await RunCommandAsync(command);
             }
 
             // TODO: We can parallelize deletion of existing files with the uploading part by uploading to a
@@ -184,75 +202,7 @@ namespace FunderMaps.Core.MapBundle.Jobs
                     new Core.Storage.StorageObject
                     {
                         ContentType = formatProperty.ContentType,
-                        CacheControl = "public, max-age=3600",
-                        IsPublic = true,
-                    });
-            }
-            finally
-            {
-                storageHandle.Release();
-            }
-
-            Logger.LogDebug($"Export of format {formatProperty.FormatName} done");
-
-            return fileDump;
-        }
-
-        /// <summary>
-        ///     Build the geometry dataset from bundle.
-        /// </summary>
-        /// <param name="bundle">Bundle to build.</param>
-        /// <param name="input">Dataset input.</param>
-        /// <param name="format">Output format.</param>
-        private async Task<DataSource> BuildBundleAsync(Bundle bundle, DataSource input, GeometryFormat format)
-        {
-            FormatProperty formatProperty = exportFormats.First(f => f.Format == format);
-            var blobStoragePath = $"dist/ORG{bundle.OrganizationId}/BND{bundle.Id}/{formatProperty.FormatShortName}";
-
-            FileDataSource fileDump = new()
-            {
-                Format = format,
-                PathPrefix = CreateDirectory(formatProperty.FormatShortName),
-                Extension = formatProperty.Extension,
-                Name = bundle.Id.ToString(),
-            };
-
-            var command = new VectorDatasetBuilder(
-                new()
-                {
-                    AdditionalOptions = formatProperty.CommandOptions,
-                    Overwrite = true,
-                })
-                .InputDataset(input)
-                .OutputDataset(fileDump)
-                .Build(formatProperty.FormatName);
-
-            await RunCommandAsync(command);
-
-            // TODO: We can parallelize deletion of existing files with the uploading part by uploading to a
-            //       temporary directory and then moving it when both tasks are complete. For now we wait for
-            //       deletion to complete before we upload into the destination directory.
-
-            Logger.LogTrace("Deleting existing files (if they exist)");
-
-            // NOTE: The lock is too aggressive because the critical section is based on the
-            //       context of bundle (identifier). However a conditional lock such as DCL is
-            //       only conceivable when the thread is synchronized. Serialize entry to all
-            //       threads on this and similair sections is a second best solution.
-            await storageHandle.WaitAsync();
-
-            try
-            {
-                await _blobStorageService.RemoveDirectoryAsync(blobStoragePath);
-
-                Logger.LogTrace($"Start uploading exported bundle");
-
-                await _blobStorageService.StoreDirectoryAsync(
-                    directoryName: blobStoragePath,
-                    directoryPath: fileDump.PathPrefix, new Core.Storage.StorageObject
-                    {
-                        ContentType = formatProperty.ContentType,
-                        CacheControl = "public, max-age=3600",
+                        CacheControl = "public, max-age=10800",
                         IsPublic = true,
                     });
             }
@@ -289,9 +239,10 @@ namespace FunderMaps.Core.MapBundle.Jobs
             List<GeometryFormat> formatList = bundleBuildingContext.Formats.Distinct().ToList();
             formatList.RemoveAll(f => f == GeometryFormat.GeoPackage);
 
-            DataSource localCacheDataSource = await BuildBundleWithLayerAsync(bundleBuildingContext.Bundle,
+            DataSource localCacheDataSource = await BuildBundleAsync(bundleBuildingContext.Bundle,
                 new PostreSQLDataSource(connectionString),
-                GeometryFormat.GeoPackage);
+                GeometryFormat.GeoPackage,
+                filterLayer: true);
 
             foreach (var format in formatList)
             {
