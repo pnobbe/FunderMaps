@@ -17,13 +17,6 @@ namespace FunderMaps.Core.MapBundle
         /// <summary>
         ///     Create new instance.
         /// </summary>
-        public VectorDatasetBuilder()
-        {
-        }
-
-        /// <summary>
-        ///     Create new instance.
-        /// </summary>
         public VectorDatasetBuilder(VectorDatasetBuilderOptions options)
             => this.options = options;
 
@@ -53,7 +46,7 @@ namespace FunderMaps.Core.MapBundle
         /// <param name="input">Input layer selector.</param>
         public VectorDatasetBuilder InputLayers(LayerSource input)
         {
-            inputLayer = input ?? new LayerSource();
+            inputLayer = input ?? new();
             return this;
         }
 

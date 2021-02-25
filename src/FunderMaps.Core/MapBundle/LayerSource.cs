@@ -19,7 +19,7 @@ namespace FunderMaps.Core.MapBundle
         }
 
         public static LayerSource Enumerable(IEnumerable<string> layers)
-            => new LayerSource
+            => new()
             {
                 Layers = layers,
             };

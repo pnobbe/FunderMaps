@@ -220,11 +220,11 @@ namespace FunderMaps.Core.Threading
             }
 
             // Enqueue and remove anything overdue.
-            workerQueueDelay.RemoveAll(b =>
+            workerQueueDelay.RemoveAll(bucket =>
             {
-                if (DateTime.Now >= b.Context.QueuedAt + b.Context.Delay)
+                if (DateTime.Now >= bucket.Context.QueuedAt + bucket.Context.Delay)
                 {
-                    workerQueue.Enqueue(b);
+                    workerQueue.Enqueue(bucket);
                     return true;
                 }
                 return false;
