@@ -54,7 +54,7 @@ namespace FunderMaps.Webservice.Controllers
 
         // GET: api/product/analysis
         /// <summary>
-        ///     Request a analysis product.
+        ///     Request an analysis product.
         /// </summary>
         [HttpGet("analysis")]
         [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ResponseWrapper<AnalysisDto>))]
@@ -76,7 +76,7 @@ namespace FunderMaps.Webservice.Controllers
         /// </summary>
         [HttpGet("statistics")]
         [ProducesResponseType((int)HttpStatusCode.OK, Type = typeof(ResponseWrapper<AnalysisDto>))]
-        public async Task<IActionResult> GetProducitStatisticsAsync([FromQuery][Required(AllowEmptyStrings = false)] string id)
+        public async Task<IActionResult> GetProducitStatisticsAsync([FromQuery][Required] string id)
         {
             // Assign.
             IAsyncEnumerable<StatisticsProduct> productList = _productService.GetStatisticsAsync(id);

@@ -16,19 +16,12 @@ namespace FunderMaps.AspNetCore.DataTransferObjects
         [Incident]
         public string Id { get; init; }
 
-        // TODO: Remove this from this DTO. This is only when creating.
-        /// <summary>
-        ///     Client identifier.
-        /// </summary>
-        [Required, Range(1, 99)]
-        public int ClientId { get; init; }
-
         // FUTURE: Rename to type
         /// <summary>
         ///     Foundation type.
         /// </summary>
         [EnumDataType(typeof(FoundationType))]
-        public FoundationType FoundationType { get; init; }
+        public FoundationType? FoundationType { get; init; }
 
         /// <summary>
         ///     Building chained to another building.
@@ -54,7 +47,7 @@ namespace FunderMaps.AspNetCore.DataTransferObjects
         ///     Foundation damage cause.
         /// </summary>
         [EnumDataType(typeof(FoundationDamageCause))]
-        public FoundationDamageCause FoundationDamageCause { get; init; }
+        public FoundationDamageCause? FoundationDamageCause { get; init; }
 
         /// <summary>
         ///     Document name.

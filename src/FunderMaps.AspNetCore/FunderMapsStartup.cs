@@ -2,18 +2,17 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using AutoMapper;
 using FunderMaps.AspNetCore.Authentication;
-using FunderMaps.AspNetCore.Components;
 using FunderMaps.AspNetCore.DataTransferObjects;
-using FunderMaps.AspNetCore.Extensions;
 using FunderMaps.AspNetCore.HealthChecks;
 using FunderMaps.Core.Entities;
-using FunderMaps.Core.Interfaces;
 using FunderMaps.Core.Types;
 using FunderMaps.Core.Types.Distributions;
 using FunderMaps.Core.Types.Products;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 
+[assembly: ApiController]
 [assembly: HostingStartup(typeof(FunderMaps.AspNetCore.FunderMapsStartup))]
 namespace FunderMaps.AspNetCore
 {
@@ -59,6 +58,8 @@ namespace FunderMaps.AspNetCore
             mapper.CreateMap<FoundationRiskDistribution, FoundationRiskDistributionResponseModel>();
             mapper.CreateMap<FoundationTypeDistribution, FoundationTypeDistributionResponseModel>();
             mapper.CreateMap<FoundationTypePair, FoundationTypePairResponseModel>();
+            mapper.CreateMap<IncidentYearPair, IncidentYearPairResponseModel>();
+            mapper.CreateMap<InquiryYearPair, InquiryYearPairResponseModel>();
         }
 
         /// <summary>
@@ -87,7 +88,6 @@ namespace FunderMaps.AspNetCore
 
                 // Register components from reference assemblies.
                 services.AddFunderMapsCoreServices();
-                services.AddFunderMapsExceptionMapper();
 
                 // NOTE: Register the HttpContextAccessor service to the container.
                 //       The HttpContextAccessor exposes a singleton holding the
@@ -95,8 +95,6 @@ namespace FunderMaps.AspNetCore
                 //       Some components require the HttpContext and its features when the
                 //       related service is being resolved within the scope.
                 services.AddHttpContextAccessor();
-
-                services.AddOrReplace<IAppContextFactory, AspAppContextFactory>(ServiceLifetime.Singleton);
 
                 services.AddHealthChecks()
                     .AddCheck<IOHealthCheck>("io_health_check")
