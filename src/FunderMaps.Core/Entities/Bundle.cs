@@ -52,8 +52,14 @@ namespace FunderMaps.Core.Entities
         public DateTime? DeleteDate { get; set; }
 
         /// <summary>
-        ///     Configuration of the selected layers.
+        ///     The date this bundle was last built.
         /// </summary>
-        public LayerConfiguration LayerConfiguration { get; set; }
+        public DateTime? CompleteDate { get; set; }
+
+        /// <summary>
+        ///     Represents the layer id.
+        /// </summary>
+        [Required]
+        public Guid LayerId { get; set; }
     }
 }

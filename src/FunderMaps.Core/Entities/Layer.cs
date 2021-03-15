@@ -23,12 +23,6 @@ namespace FunderMaps.Core.Entities
         public Guid Id { get; set; }
 
         /// <summary>
-        ///     The schema name of the table referenced by this layer.
-        /// </summary>
-        [Required]
-        public string SchemaName { get; set; }
-
-        /// <summary>
         ///     The name of the table referenced by this layer.
         /// </summary>
         [Required]
@@ -48,8 +42,8 @@ namespace FunderMaps.Core.Entities
         public object Markup { get; set; }
 
         /// <summary>
-        ///     Get the full class name including the schema, appended with an underscore.
+        ///     Get the full class name.
         /// </summary>
-        public string Slug => !string.IsNullOrEmpty(SchemaName) ? $"{SchemaName}_{TableName}" : TableName;
+        public string Slug => TableName;
     }
 }
