@@ -161,10 +161,9 @@ namespace FunderMaps.Data.Repositories
                         b.create_date,
                         b.update_date,
                         b.delete_date,
-                        b.layer_configuration
-                FROM    maplayer.bundle AS b
-                WHERE	b.create_date >= NOW() - INTERVAL '15 minutes'
-                OR		b.update_date >= NOW() - INTERVAL '15 minutes'";
+                        b.complete_date,
+                        b.layer_id 
+                FROM    maplayer.bundle AS b";
 
             // FUTURE: Maybe move up.
             if (AppContext.HasIdentity)
@@ -222,7 +221,8 @@ namespace FunderMaps.Data.Repositories
                 CreateDate = reader.GetDateTime(3),
                 UpdateDate = reader.GetSafeDateTime(4),
                 DeleteDate = reader.GetSafeDateTime(5),
-                LayerConfiguration = reader.GetFieldValue<LayerConfiguration>(6),
+                CompleteDate = reader.GetSafeDateTime(6),
+                LayerId = reader.GetGuid(7),
             };
 
         /// <summary>
@@ -239,7 +239,7 @@ namespace FunderMaps.Data.Repositories
 
             context.AddParameterWithValue("organization_id", entity.OrganizationId);
             context.AddParameterWithValue("name", entity.Name);
-            context.AddJsonParameterWithValue("layer_configuration", entity.LayerConfiguration);
+            // context.AddJsonParameterWithValue("layer_configuration", entity.LayerConfiguration);
         }
     }
 }

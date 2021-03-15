@@ -136,52 +136,29 @@ namespace FunderMaps.Core.MapBundle.Jobs
                 Name = bundle.Id.ToString(),
             };
 
+            var commandBuilder = new VectorDatasetBuilder(
+                new()
+                {
+                    AdditionalOptions = formatProperty.CommandOptions,
+                })
+                .InputDataset(input)
+                .OutputDataset(fileDump);
+
             if (filterLayer)
             {
-                int returnCode = 0;
-                await foreach (var layer in _layerRepository.ListAllFromBundleIdAsync(bundle.Id))
-                {
-                    // NOTE: Only check the return code in the next iteration. We cannot append to an
-                    //       invalid dataset, however we can continue if only the last layer failed to
-                    //       complete.
-                    if (returnCode != 0)
-                    {
-                        throw new ProcessException("Last layer command failed, refuse to continue");
-                    }
-
-                    var command = new VectorDatasetBuilder(
-                        new()
-                        {
-                            AdditionalOptions = formatProperty.CommandOptions,
-                            Append = true,
-                        })
-                        .InputDataset(input)
-                        .InputLayers(new BundleLayerSource(bundle, layer, Context.Workspace))
-                        .OutputDataset(fileDump)
-                        .Build(formatProperty.FormatName);
-
-                    returnCode = await RunCommandAsync(command);
-                }
+                Layer layer = await _layerRepository.GetByIdAsync(bundle.LayerId);
+                commandBuilder.InputLayers(new BundleLayerSource(bundle, layer, Context.Workspace));
             }
-            else
-            {
-                var command = new VectorDatasetBuilder(
-                    new()
-                    {
-                        AdditionalOptions = formatProperty.CommandOptions,
-                        Overwrite = true,
-                    })
-                    .InputDataset(input)
-                    .OutputDataset(fileDump)
-                    .Build(formatProperty.FormatName);
 
-                await RunCommandAsync(command);
+            int returnCode = await RunCommandAsync(commandBuilder.Build(formatProperty.FormatName));
+            if (returnCode != 0)
+            {
+                throw new Exception();
             }
 
             // TODO: We can parallelize deletion of existing files with the uploading part by uploading to a
             //       temporary directory and then moving it when both tasks are complete. For now we wait for
             //       deletion to complete before we upload into the destination directory.
-
             Logger.LogTrace("Deleting existing files (if they exist)");
 
             // NOTE: The lock is too aggressive because the critical section is based on the

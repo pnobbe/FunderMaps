@@ -61,15 +61,6 @@ namespace FunderMaps.Core.MapBundle
         {
             CommandInfo command = new(CommandName);
 
-            if (options.Overwrite)
-            {
-                command.ArgumentList.Add("-overwrite");
-            }
-            else if (options.Append)
-            {
-                command.ArgumentList.Add("-append");
-            }
-
             command.ArgumentList.Add("-f");
             command.ArgumentList.Add(formatName);
             command.ArgumentList.Add(output.Write(command));
