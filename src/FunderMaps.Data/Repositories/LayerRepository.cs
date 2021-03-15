@@ -36,18 +36,15 @@ namespace FunderMaps.Data.Repositories
 
             var sql = @"
                 INSERT INTO maplayer.layer(
-                    schema_name,
                     table_name,
                     name)
                 VALUES (
-                    @schema_name,
                     @table_name,
                     trim(@name))
                 RETURNING id";
 
             await using var context = await DbContextFactory.CreateAsync(sql);
 
-            context.AddParameterWithValue("schema_name", entity.SchemaName);
             context.AddParameterWithValue("table_name", entity.TableName);
             context.AddParameterWithValue("name", entity.Name);
 
@@ -105,7 +102,6 @@ namespace FunderMaps.Data.Repositories
             var sql = @"
                 SELECT  -- Layer
                         l.id,
-                        l.schema_name,
                         l.table_name,
                         l.name,
                         l.markup
@@ -137,7 +133,6 @@ namespace FunderMaps.Data.Repositories
                 )
                 SELECT  -- Layer
                         l.id,
-                        l.schema_name,
                         l.table_name,
                         l.name,
                         l.markup
@@ -167,7 +162,6 @@ namespace FunderMaps.Data.Repositories
             var sql = @"
                 SELECT  -- Layer
                         l.id,
-                        l.schema_name,
                         l.table_name,
                         l.name,
                         l.markup
@@ -198,8 +192,7 @@ namespace FunderMaps.Data.Repositories
 
             var sql = @"
                     UPDATE  maplayer.layer
-                    SET     schema_name = @schema_name,
-                            table_name = @table_name,
+                    SET     table_name = @table_name,
                             name = trim(@name),
                             markup = @markup
                     WHERE   id = @id";
@@ -207,7 +200,6 @@ namespace FunderMaps.Data.Repositories
             await using var context = await DbContextFactory.CreateAsync(sql);
 
             context.AddParameterWithValue("id", entity.Id);
-            context.AddParameterWithValue("schema_name", entity.SchemaName);
             context.AddParameterWithValue("table_name", entity.TableName);
             context.AddParameterWithValue("name", entity.Name);
             context.AddJsonParameterWithValue("markup", entity.Markup);
@@ -223,10 +215,9 @@ namespace FunderMaps.Data.Repositories
             => new()
             {
                 Id = reader.GetGuid(0),
-                SchemaName = reader.GetString(1),
-                TableName = reader.GetString(2),
-                Name = reader.GetString(3),
-                Markup = reader.GetFieldValue<object>(4),
+                TableName = reader.GetString(1),
+                Name = reader.GetString(2),
+                Markup = reader.GetFieldValue<object>(3),
             };
     }
 }
