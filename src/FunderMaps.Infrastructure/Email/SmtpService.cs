@@ -10,7 +10,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-#pragma warning disable CA1812 // Internal class is never instantiated
 namespace FunderMaps.Infrastructure.Email
 {
     // FUTURE: Catch ex.
@@ -120,4 +119,3 @@ namespace FunderMaps.Infrastructure.Email
         }
     }
 }
-#pragma warning restore CA1812 // Internal class is never instantiated
